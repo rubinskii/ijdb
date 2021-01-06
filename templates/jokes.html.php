@@ -8,7 +8,14 @@ $jokes - массив с шутками из jokes.php
 <blockquote>
   <p>
     <?=htmlEscape($joke['joketext'])?>
-    (автор: <a href="mailto:<?= htmlEscape($joke['email'])?>"><?= htmlEscape($joke['name']); ?></a>)
+    (
+      автор: <a href="mailto:<?= htmlEscape($joke['email'])?>">
+        <?= htmlEscape($joke['name']); ?>
+      </a>, добавлена <?php
+        $date = new DateTime($joke['jokedate']);
+        echo $date->format('d-m-Y');
+      ?>
+    )
     <a href="editjoke.php?id=<?=$joke['id']?>">редактировать</a>
     <form action="deletejoke.php" method="post">
       <input type="hidden" name="id" value="<?=$joke['id']?>">

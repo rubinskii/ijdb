@@ -4,18 +4,25 @@ include __DIR__ . '/../includes/DatabaseFunctions.php';
 
 try {
   //форма отправлена - обновляю запись
-  if (isset($_POST['joketext'])) {
-    updateJoke($pdo, $_POST['jokeid'], $_POST['joketext'], 1);
+  if (isset($_POST['joke'])) {
+    $joke = $_POST['joke'];
+    $joke['jokedate'] = new DateTime();
+    $joke['authorId'] = 1;
+    save(
+      $pdo,
+      'joke',
+      'id',
+      $joke
+    );
 
     header('location: jokes.php');  
   }
   else {
-    /*
-      получаю запись из бд
-      ид записи получаю по ссылке из списка шуток 
-    */
-    $joke = getJoke($pdo, $_GET['id']);
-
+    // переход по ссылке для редактирования
+    if(isset($_GET['id'])) {
+      $joke = findById($pdo, 'joke', 'id', $_GET['id']);
+    }
+    
     $title = 'редактировать шутку';
     ob_start();
     include  __DIR__ . '/../templates/editjoke.html.php';

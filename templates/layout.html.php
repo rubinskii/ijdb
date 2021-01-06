@@ -12,7 +12,7 @@
   <ul>
     <li><a href="index.php">главная</a></li>
     <li><a href="jokes.php">список шуток</a></li>
-    <li><a href="addjoke.php">добавить шутку</a></li>
+    <li><a href="editjoke.php">добавить шутку</a></li>
   </ul>
 </nav>
 <main>

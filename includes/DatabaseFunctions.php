@@ -14,67 +14,100 @@ function query($pdo, $sql, $parameters = []) {
   $query->execute($parameters);
   return $query;
 }
-
-/*
-подсчитывает кол-во записей в таблице
-*/
-function totalJokes($pdo) {
-  $query = query($pdo, 'SELECT COUNT(*) FROM joke');
+// подсчитываю количество записей
+function total($pdo, $table) {
+  $query = query($pdo, 'SELECT COUNT(*) FROM `' . $table . '`');
   $row = $query->fetch();
+
   return $row[0];
 }
-
-/*
-получаю список всех шуток
-*/
-function allJokes($pdo) {
-  $jokes = query($pdo, 'SELECT `joke`.`id`, `joketext`,
-  `name`, `email`
-  FROM `joke` INNER JOIN `author`
-  ON `authorid` = `author`.`id`');
-  return $jokes->fetchAll();
-}
-
-
-
-
-
-function getJoke($pdo, $id) {
-  //Create the array of `$parameters` for use in the `query` function
-  $parameters = [':id' => $id];
-
-
-  //call the query function and provide the `$parameters` array
-  $query = query($pdo, 'SELECT * FROM `joke` WHERE `id` = :id', $parameters);
+// нахожу запись по id
+function findById($pdo, $table, $primaryKey, $value) {
+  $query = 'SELECT * FROM `' . $table . '`
+  WHERE `' . $primaryKey . '` = :value';
+  $parameters = [
+    'value' => $value
+  ];
+  $query = query($pdo, $query, $parameters);
 
   return $query->fetch();
 }
+//вставляет данные в таблицы
+function insert($pdo, $table, $fields) {
+  $query = 'INSERT INTO `' . $table . '` (';
 
+  foreach($fields as $key => $value) {
+    $query .= '`' . $key . '`,';
+  }
 
-function insertJoke($pdo, $joketext, $authorId) {
-  $query = 'INSERT INTO `joke` (`joketext`, `jokedate`, `authorId`) 
-            VALUES (:joketext, CURDATE(), :authorId)';
+  $query = rtrim($query, ',');
 
-  $parameters = [':joketext' => $joketext, ':authorId' => $authorId];
+  $query .= ') VALUES (';
 
-  query($pdo, $query, $parameters);
+  foreach($fields as $key => $value) {
+    $query .= ':' . $key . ',';
+  }
+
+  $query = rtrim($query, ',');
+
+  $query .= ')';
+
+  $fields = processDates($fields);
+
+  query($pdo, $query, $fields);
 }
+//обновляет данные в таблицах
+function update($pdo, $table, $primaryKey, $fields) {
+  $query = 'UPDATE `' . $table . '` SET ';
 
+  foreach($fields as $key => $value) {
+    $query .= '`' . $key . '` = :' . $key . ',';
+  }
 
-function updateJoke($pdo, $jokeId, $joketext, $authorId) {
-  $parameters = [':joketext' => $joketext, ':authorId' => $authorId, ':id' => $jokeId];
+  $query = rtrim($query, ',');
 
-  query($pdo, 'UPDATE `joke` SET `authorId` = :authorId, `joketext` = :joketext WHERE `id` = :id', $parameters);
+  $query .= ' WHERE `' . $primaryKey . '` = :primaryKey';
+  //устанавливаю первичный ключ
+  $fields['primaryKey'] = $fields['id'];
+  
+  $fields = processDates($fields);
+
+  query($pdo, $query, $fields);
 }
-
-function deleteJoke($pdo, $id) {
+// удаление записей из таблиц
+function delete($pdo, $table, $primaryKey, $id ) {
   $parameters = [':id' => $id];
 
-  query($pdo, 'DELETE FROM `joke` WHERE `id` = :id', $parameters);
+  query($pdo, 'DELETE FROM `' . $table . '` WHERE `' . $primaryKey . '` = :id', $parameters);
 }
+//поиск конкретных записей по таблицам
+function findAll($pdo, $table) {
+  $result = query($pdo, 'SELECT * FROM `' . $table . '`');
 
-
+  return $result->fetchAll();
+}
+//форматирую дату для таблицы
+function processDates($fields) {
+  foreach ($fields as $key => $value) {
+    if ($value instanceof DateTime) {
+      $fields[$key] = $value->format('Y-m-d');
+    }
+  }
+  return $fields;
+}
 //экранирование HTML
 function htmlEscape($string) {
   return htmlspecialchars($string, ENT_HTML5, 'UTF-8');
+}
+//выполняет вставку или обновление в таблицы
+function save($pdo, $table, $primaryKey, $record) {
+  try {
+    if($record[$primaryKey] == '') {
+      $record[$primaryKey] = null;
+    }
+    insert($pdo, $table, $record);
+  }
+  catch(PDOException $e) {
+    update($pdo, $table, $primaryKey, $record);
+  }
 }
