@@ -7,10 +7,10 @@ $jokes - массив с шутками из jokes.php
 <?php foreach($jokes as $joke): ?>
 <blockquote>
   <p>
-    <?=htmlEscape($joke['joketext'])?>
+    <?=$joke['joketext']?>
     (
-      автор: <a href="mailto:<?= htmlEscape($joke['email'])?>">
-        <?= htmlEscape($joke['name']); ?>
+      автор: <a href="mailto:<?= $joke['email']?>">
+        <?= $joke['name']; ?>
       </a>, добавлена <?php
         $date = new DateTime($joke['jokedate']);
         echo $date->format('d-m-Y');

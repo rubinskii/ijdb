@@ -1,4 +1,14 @@
 <?php
+class DatabaseTable {
+private $pdo;
+private $table;
+private $primaryKey;
+
+public function __construct(PDO $pdo, string $table, string $primaryKey) {
+  $this->pdo = $pdo;
+  $this->table = $table;
+  $this->primaryKey = $primaryKey;
+}
 /* 
 выполняю подготовленный запрос к бд
 
@@ -9,32 +19,32 @@ $parameters - массив параметров, по умолчанию пус�
 
 возвращает результат
 */
-function query($pdo, $sql, $parameters = []) {
-  $query = $pdo->prepare($sql);
+private function query($sql, $parameters = []) {
+  $query = $this->pdo->prepare($sql);
   $query->execute($parameters);
   return $query;
 }
 // подсчитываю количество записей
-function total($pdo, $table) {
-  $query = query($pdo, 'SELECT COUNT(*) FROM `' . $table . '`');
+public function total() {
+  $query = $this->query('SELECT COUNT(*) FROM `' . $this->table . '`');
   $row = $query->fetch();
 
   return $row[0];
 }
 // нахожу запись по id
-function findById($pdo, $table, $primaryKey, $value) {
-  $query = 'SELECT * FROM `' . $table . '`
-  WHERE `' . $primaryKey . '` = :value';
+public function findById($value) {
+  $query = 'SELECT * FROM `' . $this->table . '`
+  WHERE `' . $this->primaryKey . '` = :value';
   $parameters = [
     'value' => $value
   ];
-  $query = query($pdo, $query, $parameters);
+  $query = $this->query($query, $parameters);
 
   return $query->fetch();
 }
 //вставляет данные в таблицы
-function insert($pdo, $table, $fields) {
-  $query = 'INSERT INTO `' . $table . '` (';
+private function insert($fields) {
+  $query = 'INSERT INTO `' . $this->table . '` (';
 
   foreach($fields as $key => $value) {
     $query .= '`' . $key . '`,';
@@ -52,13 +62,13 @@ function insert($pdo, $table, $fields) {
 
   $query .= ')';
 
-  $fields = processDates($fields);
+  $fields = $this->processDates($fields);
 
-  query($pdo, $query, $fields);
+  $this->query($query, $fields);
 }
 //обновляет данные в таблицах
-function update($pdo, $table, $primaryKey, $fields) {
-  $query = 'UPDATE `' . $table . '` SET ';
+private function update($fields) {
+  $query = 'UPDATE `' . $this->table . '` SET ';
 
   foreach($fields as $key => $value) {
     $query .= '`' . $key . '` = :' . $key . ',';
@@ -66,28 +76,28 @@ function update($pdo, $table, $primaryKey, $fields) {
 
   $query = rtrim($query, ',');
 
-  $query .= ' WHERE `' . $primaryKey . '` = :primaryKey';
+  $query .= ' WHERE `' . $this->primaryKey . '` = :primaryKey';
   //устанавливаю первичный ключ
   $fields['primaryKey'] = $fields['id'];
   
-  $fields = processDates($fields);
+  $fields = $this->processDates($fields);
 
-  query($pdo, $query, $fields);
+  $this->query($query, $fields);
 }
 // удаление записей из таблиц
-function delete($pdo, $table, $primaryKey, $id ) {
+public function delete($id ) {
   $parameters = [':id' => $id];
 
-  query($pdo, 'DELETE FROM `' . $table . '` WHERE `' . $primaryKey . '` = :id', $parameters);
+  $this->query('DELETE FROM `' . $this->table . '` WHERE `' . $this->primaryKey . '` = :id', $parameters);
 }
 //поиск конкретных записей по таблицам
-function findAll($pdo, $table) {
-  $result = query($pdo, 'SELECT * FROM `' . $table . '`');
+public function findAll() {
+  $result = $this->query('SELECT * FROM `' . $this->table . '`');
 
   return $result->fetchAll();
 }
 //форматирую дату для таблицы
-function processDates($fields) {
+private function processDates($fields) {
   foreach ($fields as $key => $value) {
     if ($value instanceof DateTime) {
       $fields[$key] = $value->format('Y-m-d');
@@ -96,18 +106,21 @@ function processDates($fields) {
   return $fields;
 }
 //экранирование HTML
-function htmlEscape($string) {
+public function htmlEscape($string) {
   return htmlspecialchars($string, ENT_HTML5, 'UTF-8');
 }
 //выполняет вставку или обновление в таблицы
-function save($pdo, $table, $primaryKey, $record) {
+public function save($record) {
   try {
-    if($record[$primaryKey] == '') {
-      $record[$primaryKey] = null;
+    if($record[$this->primaryKey] == '') {
+      $record[$this->primaryKey] = null;
     }
-    insert($pdo, $table, $record);
+    $this->insert($record);
   }
   catch(PDOException $e) {
-    update($pdo, $table, $primaryKey, $record);
+    $this->update($record);
   }
+}
+
+
 }
